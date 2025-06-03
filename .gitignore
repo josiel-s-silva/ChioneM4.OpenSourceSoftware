@@ -1,0 +1,20 @@
+# Pastas de build
+bin/
+obj/
+
+# Configurações do Visual Studio
+.vs/
+*.user
+*.suo
+
+# Pacotes NuGet
+packages/
+*.nupkg
+project.lock.json
+project.assets.json
+
+# Arquivos temporários e backups
+*.log
+*.tmp
+*.bak
+*.cache

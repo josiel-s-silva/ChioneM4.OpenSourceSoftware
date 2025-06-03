@@ -1,0 +1,31 @@
+﻿<Window x:Class="WaterCoolerM4.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WaterCoolerM4"
+        mc:Ignorable="d"
+        Title="Chione M4 - Open Source Software" Height="296" Width="461" Closed="Window_Closed" ResizeMode="CanMinimize">
+    <Grid RenderTransformOrigin="0.501,0.505">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Label Content="Pump Fan Sensor:" Margin="24,46,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="154" Grid.Row="2"/>
+        <ComboBox x:Name="cpuFanSensor" HorizontalAlignment="Center" Margin="0,47,0,0" Width="155" Grid.Row="1" Grid.Column="1" Height="22" VerticalAlignment="Top"/>
+        <Label Content="Cpu Fan Sensor" HorizontalAlignment="Left" Margin="24,47,0,0" VerticalAlignment="Top" Width="155" Grid.Row="1"/>
+        <ComboBox x:Name="pumpFanSensor" HorizontalAlignment="Center" Margin="0,46,0,0" VerticalAlignment="Top" Width="155" Grid.Row="2" Grid.Column="1"/>
+        <ComboBox x:Name="cpuTemperatureSensor" HorizontalAlignment="Center" Margin="0,47,0,0" Width="155" Grid.Column="1" Height="22" VerticalAlignment="Top"/>
+        <Label Content="Cpu Temperature Sensor" HorizontalAlignment="Left" Margin="23,47,0,0" VerticalAlignment="Top" Width="155"/>
+        <Label x:Name="cpuTemperatureLabel" Content="0 °C" HorizontalAlignment="Left" Margin="24,16,0,0" VerticalAlignment="Top" Width="81"/>
+        <Label x:Name="pumpFanLabel" Content="0 RPM" HorizontalAlignment="Left" Margin="24,15,0,0" VerticalAlignment="Top" Width="80" Grid.Row="2" RenderTransformOrigin="0.537,1.496"/>
+        <Label x:Name="cpuFanLabel" Content="0 RPM" HorizontalAlignment="Left" Margin="24,16,0,0" VerticalAlignment="Top" Width="80" RenderTransformOrigin="0.563,2.488" Grid.Row="1"/>
+        <TextBox x:Name="maxCpuFanRpm" HorizontalAlignment="Center" Margin="0,14,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="154" Grid.Row="1" Grid.Column="1"/>
+        <TextBox x:Name="maxPumpFanRpm" HorizontalAlignment="Center" Margin="0,15,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="155" Grid.Row="2" Grid.Column="1"/>
+    </Grid>
+</Window>

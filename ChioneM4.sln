@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36127.28
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChioneM4", "ChioneM4\ChioneM4.csproj", "{1A89D1B8-8EE4-4F9A-B0C4-D6F3A60B66C0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1A89D1B8-8EE4-4F9A-B0C4-D6F3A60B66C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A89D1B8-8EE4-4F9A-B0C4-D6F3A60B66C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A89D1B8-8EE4-4F9A-B0C4-D6F3A60B66C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A89D1B8-8EE4-4F9A-B0C4-D6F3A60B66C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {14D2CEE3-5664-470C-9E39-7B265B4B00FF}
+	EndGlobalSection
+EndGlobal
