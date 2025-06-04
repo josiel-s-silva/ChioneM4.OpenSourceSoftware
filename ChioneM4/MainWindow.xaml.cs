@@ -27,7 +27,9 @@ namespace WaterCoolerM4
     /// </summary>
     public partial class MainWindow : Window
     {
-        private string find_PID = "B533";
+        private SensorUpdater sensorUpdater;
+        private const string DefaultConfigPath = "config.json";
+        private const string DefaultFindPid = "B533";
 
         private AppConfig Config;
 
@@ -36,8 +38,6 @@ namespace WaterCoolerM4
         private ClassUSBPort classUSBPort = new ClassUSBPort();
 
         private MonitorManager monitorManager = new MonitorManager();
-        private Thread refreshThread;
-        private bool canRestartRefreshThread = false;
 
         private byte stnLightOnOf_Fan = 1;
         private byte stnLightOnOf_Pum = 1;
@@ -49,7 +49,7 @@ namespace WaterCoolerM4
             InitializeComponent();
 
             // Load configuration
-            Config = ConfigManager.Load("config.json");
+            Config = ConfigManager.Load(DefaultConfigPath);
 
             // Start the USB listener
             classUSBListener = new ClassUSBListener(this, listenHook);
@@ -62,8 +62,9 @@ namespace WaterCoolerM4
             // Set the initial values for the text boxes
             loadUI();
 
-            // Start the refresh thread
-            StartupRefreshThread();
+            // Start the sensor updater
+            sensorUpdater = new SensorUpdater(monitorManager, Config, OnSensorUpdate);
+            sensorUpdater.Start();
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -72,9 +73,40 @@ namespace WaterCoolerM4
             ClearCpuTemp();
             UpdateFanDisplay(0);
             UpdatePumpDisplay(0);
+        }
 
-            // Stop the refresh thread if it's running
-            ShutdownRefreshThread();
+        private void OnSensorUpdate(float cpuTemp, float cpuFan, float pumpFan)
+        {
+            try
+            {
+                int cpuFanPorcentage = (int)(cpuFan / (Config.MaxCpuFanRpm > 0 ? Config.MaxCpuFanRpm : 1) * 100);
+                int pumpFanPorcentage = (int)(pumpFan / (Config.MaxPumpFanRpm > 0 ? Config.MaxPumpFanRpm : 1) * 100);
+
+                Debug.WriteLine($"CPU Temp: {cpuTemp} °C, CPU Fan: {cpuFan} RPM, Pump Fan: {pumpFan} RPM");
+                Debug.WriteLine($"CPU Fan Porcentage: {cpuFanPorcentage} %, Pump Fan Porcentage: {pumpFanPorcentage} %");
+
+                SetCpuTemp(cpuTemp);
+                UpdateFanDisplay(cpuFanPorcentage);
+                UpdatePumpDisplay(pumpFanPorcentage);
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (Config.TemperatureUnit == 0)
+                    {
+                        cpuTemperatureLabel.Content = $"{cpuTemp:00.0} °C";
+                    }
+                    else
+                    {
+                        cpuTemperatureLabel.Content = Utils.celsiusToFahrenheit(cpuTemp) + "°F";
+                    }
+                    cpuFanLabel.Content = $"{cpuFan:00.0} RPM";
+                    pumpFanLabel.Content = $"{pumpFan:00.0} RPM";
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] Erro ao atualizar UI: {ex.Message}");
+            }
         }
 
         private void loadUI()
@@ -97,75 +129,30 @@ namespace WaterCoolerM4
             }
 
             // Set the values from the configuration to the combo boxes
+            displayType.SelectedIndex = Config.DisplayType;
+            temperatureUnit.SelectedIndex = Config.TemperatureUnit;
+
             cpuTemperatureSensor.SelectedIndex = Config.CpuTemperatureSensor;
             cpuFanSensor.SelectedIndex = Config.CpuFanSensor;
             pumpFanSensor.SelectedIndex = Config.PumpFanSensor;
 
             // Add event handler for selection change
-            cpuTemperatureSensor.SelectionChanged += ComboBox_SelectionChanged;
-            cpuFanSensor.SelectionChanged += ComboBox_SelectionChanged;
-            pumpFanSensor.SelectionChanged += ComboBox_SelectionChanged;
+            displayType.SelectionChanged += SaveConfigHandler;
+            temperatureUnit.SelectionChanged += SaveConfigHandler;
+            cpuTemperatureSensor.SelectionChanged += SaveConfigHandler;
+            cpuFanSensor.SelectionChanged += SaveConfigHandler;
+            pumpFanSensor.SelectionChanged += SaveConfigHandler;
 
             // Set the values for max RPM text boxes
             maxCpuFanRpm.Text = Config.MaxCpuFanRpm.ToString();
             maxPumpFanRpm.Text = Config.MaxPumpFanRpm.ToString();
 
             // Add event handler for max RPM text boxes
-            maxCpuFanRpm.TextChanged += TextBox_TextChanged;
-            maxPumpFanRpm.TextChanged += TextBox_TextChanged;
+            maxCpuFanRpm.TextChanged += SaveConfigHandler;
+            maxPumpFanRpm.TextChanged += SaveConfigHandler;
 
-            maxCpuFanRpm.PreviewTextInput += TextBox_PreviewTextInput;
-            maxPumpFanRpm.PreviewTextInput += TextBox_PreviewTextInput;
-        }
-
-        private void StartupRefreshThread()
-        {
-            SensorInfo selectedCpuTemperatureSensor = (SensorInfo)cpuTemperatureSensor.SelectedItem;
-            SensorInfo selectedCpuFanSensor = (SensorInfo)cpuFanSensor.SelectedItem;
-            SensorInfo selectedPumpFanSensor = (SensorInfo)pumpFanSensor.SelectedItem;
-
-            refreshThread = new Thread(() =>
-            {
-                while (true)
-                {
-                    selectedCpuTemperatureSensor.Sensor.Hardware.Update();
-                    selectedCpuFanSensor.Sensor.Hardware.Update();
-                    selectedPumpFanSensor.Sensor.Hardware.Update();
-
-                    float cpuTemp = selectedCpuTemperatureSensor.Sensor.Value ?? 0;
-
-                    float cpuFan = selectedCpuFanSensor.Sensor.Value ?? 0;
-                    float pumpFan = selectedPumpFanSensor.Sensor.Value ?? 0;
-
-                    int cpuFanPorcentage = (int)(cpuFan / Config.MaxCpuFanRpm * 100);
-                    int pumpFanPorcentage = (int)(pumpFan / Config.MaxPumpFanRpm * 100);
-
-                    Debug.WriteLine($"CPU Temp: {cpuTemp} °C, CPU Fan: {cpuFan} RPM, Pump Fan: {pumpFan} RPM");
-                    Debug.WriteLine($"CPU Fan Porcentage: {cpuFanPorcentage} %, Pump Fan Porcentage: {pumpFanPorcentage} %");
-
-                    SetCpuTemp(cpuTemp);
-                    UpdateFanDisplay(cpuFanPorcentage);
-                    UpdatePumpDisplay(pumpFanPorcentage);
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        cpuTemperatureLabel.Content = $"{cpuTemp:00.0} °C";
-                        cpuFanLabel.Content = $"{cpuFan:00.0} RPM";
-                        pumpFanLabel.Content = $"{pumpFan:00.0} RPM";
-                    });
-
-                    Thread.Sleep(1000);
-                }
-            });
-            refreshThread.Start();
-        }
-
-        private void ShutdownRefreshThread()
-        {
-            if (refreshThread != null && refreshThread.IsAlive)
-            {
-                refreshThread.Abort();
-            }
+            maxCpuFanRpm.PreviewTextInput += PreventLettersHandler;
+            maxPumpFanRpm.PreviewTextInput += PreventLettersHandler;
         }
 
         private void ConfigScreen()
@@ -190,16 +177,29 @@ namespace WaterCoolerM4
 
         private void SetCpuTemp(float temp)
         {
-            string tempStr = Math.Min(temp, 99.9f).ToString("00.0");
+            int number1 = 0, number2 = 0, number3 = 0;
+            if (Config.TemperatureUnit == 0)
+            {
+                // Celsius
+                string tempStr = Math.Min(temp, 99.9f).ToString("00.0");
 
-            int number1 = int.Parse(tempStr[0].ToString());
-            int number2 = int.Parse(tempStr[1].ToString());
-            int number3 = int.Parse(tempStr[3].ToString());
+                number1 = int.Parse(tempStr[0].ToString());
+                number2 = int.Parse(tempStr[1].ToString());
+                number3 = int.Parse(tempStr[3].ToString());
+            }
+            else
+            {
+                // Fahrenheit
+                string tempStr = Utils.celsiusToFahrenheit(temp).ToString("000.0");
+                number1 = int.Parse(tempStr[0].ToString());
+                number2 = int.Parse(tempStr[1].ToString());
+                number3 = int.Parse(tempStr[2].ToString());
+            }
 
             byte byte1 = Utils.NumberToByte(number1);
             byte byte2 = Utils.NumberToByte(number2);
             byte byte3 = Utils.NumberToByte(number3);
-            byte byte4 = 1;
+            byte byte4 = (byte)(Config.TemperatureUnit == 1 ? 0 : 1);
 
             byte[] ef_setArray = new byte[9] { 0, 99, byte1, byte2, byte3, byte4, 0, 0, 0 };
             classUSBPort.USB_63H(ef_setArray);
@@ -224,47 +224,47 @@ namespace WaterCoolerM4
         }
         private bool UsbOnline()
         {
-            classUSBOnline.GetOnline();
-            classUSBOnline.GetUSB_find(find_PID);
-            bool num = classUSBPort.Init(classUSBOnline.USBHID_bc, find_PID);
-            if (num)
+            try
             {
-                Debug.WriteLine("USB Port Path: " + classUSBPort.uSBHID_Port.DevicePath);
+                classUSBOnline.GetOnline();
+                classUSBOnline.GetUSB_find(DefaultFindPid);
+                bool num = classUSBPort.Init(classUSBOnline.USBHID_bc, DefaultFindPid);
+                if (num)
+                {
+                    Debug.WriteLine("USB Port Path: " + classUSBPort.uSBHID_Port.DevicePath);
+                }
+                return num;
             }
-            return num;
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] Erro ao inicializar USB: {ex.Message}");
+                return false;
+            }
         }
-        private void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void SaveConfigHandler(object sender, EventArgs e)
         {
             // Update the configuration based on the selected sensors
             Config.CpuTemperatureSensor = cpuTemperatureSensor.SelectedIndex;
             Config.CpuFanSensor = cpuFanSensor.SelectedIndex;
             Config.PumpFanSensor = pumpFanSensor.SelectedIndex;
+            Config.DisplayType = displayType.SelectedIndex;
+            Config.TemperatureUnit = temperatureUnit.SelectedIndex;
 
-            // Save configuration when a sensor is changed
-            ConfigManager.Save("config.json", Config);
-
-            // Restart the refresh thread to apply the new sensor selection
-            ShutdownRefreshThread();
-            StartupRefreshThread();
-        }
-
-        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
+            // Update the maximum RPM values from the text boxes
             if (int.TryParse(maxCpuFanRpm.Text, out int maxCpuFanRpm_) && int.TryParse(maxPumpFanRpm.Text, out int maxPumpFanRpm_))
             {
                 Config.MaxCpuFanRpm = maxCpuFanRpm_;
                 Config.MaxPumpFanRpm = maxPumpFanRpm_;
-
-                // Save configuration when max RPM is changed
-                ConfigManager.Save("config.json", Config);
-
-                // Restart the refresh thread to apply the new max RPM values
-                ShutdownRefreshThread();
-                StartupRefreshThread();
             }
+
+            // Save configuration
+            ConfigManager.Save(DefaultConfigPath, Config);
+
+            // Atualiza sensores e reinicia atualização
+            sensorUpdater.SetSensorsFromConfig();
         }
 
-        private void TextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        private void PreventLettersHandler(object sender, TextCompositionEventArgs e)
         {
             // Só permite dígitos
             e.Handled = !e.Text.All(char.IsDigit);

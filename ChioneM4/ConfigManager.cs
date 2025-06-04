@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 public class AppConfig
 {
     public int DisplayType { get; set; }
+    public int TemperatureUnit { get; set; }
     public int CpuTemperatureSensor { get; set; }
     public int CpuFanSensor { get; set; }
     public int PumpFanSensor { get; set; }
@@ -19,6 +20,7 @@ public static class ConfigManager
             return new AppConfig
             {
                 DisplayType = 1,
+                TemperatureUnit = 1,
                 CpuTemperatureSensor = 0,
                 CpuFanSensor = 0,
                 PumpFanSensor = 0,
