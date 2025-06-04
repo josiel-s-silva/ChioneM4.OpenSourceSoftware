@@ -1,40 +1,42 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Newtonsoft.Json;
+
 public class AppConfig
 {
-    public int DisplayType { get; set; }
-    public int TemperatureUnit { get; set; }
-    public int CpuTemperatureSensor { get; set; }
-    public int CpuFanSensor { get; set; }
-    public int PumpFanSensor { get; set; }
-    public int MaxCpuFanRpm { get; set; }
-    public int MaxPumpFanRpm { get; set; }
+    public int DisplayType { get; set; } = 1;
+    public int TemperatureUnit { get; set; } = 0;
+    public int CpuTemperatureSensor { get; set; } = 0;
+    public int CpuFanSensor { get; set; } = 0;
+    public int PumpFanSensor { get; set; } = 0;
+    public int MaxCpuFanRpm { get; set; } = 2000;
+    public int MaxPumpFanRpm { get; set; } = 5200;
 }
 
 public static class ConfigManager
 {
-    public static AppConfig Load(string filePath)
+    private static string GetFullPath(string fileName)
     {
+        string basePath = AppDomain.CurrentDomain.BaseDirectory;
+        return Path.Combine(basePath, fileName);
+    }
+
+    public static AppConfig Load(string fileName)
+    {
+        string filePath = GetFullPath(fileName);
+
         if (!File.Exists(filePath))
         {
-            return new AppConfig
-            {
-                DisplayType = 1,
-                TemperatureUnit = 1,
-                CpuTemperatureSensor = 0,
-                CpuFanSensor = 0,
-                PumpFanSensor = 0,
-                MaxCpuFanRpm = 2000,
-                MaxPumpFanRpm = 5200
-            };
+            return new AppConfig();
         }
 
         string json = File.ReadAllText(filePath);
         return JsonConvert.DeserializeObject<AppConfig>(json);
     }
 
-    public static void Save(string filePath, AppConfig config)
+    public static void Save(string fileName, AppConfig config)
     {
+        string filePath = GetFullPath(fileName);
         string json = JsonConvert.SerializeObject(config, Formatting.Indented);
         File.WriteAllText(filePath, json);
     }
